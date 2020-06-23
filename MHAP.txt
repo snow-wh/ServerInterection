@@ -1,0 +1,205 @@
+PPP MAC Hash Authentication Protocol (MHAP)
+Abstract
+
+
+ The Point-to-Point Protocol (PPP) provides a standard method for
+ transporting multi-protocol datagrams over point-to-point links.
+
+
+ This document defines a method for Authentication using PPP, which
+ uses a random Challenge, with a cryptographically hashed Response
+ which depends upon the Challenge and a secret key. Also this method 
+ uses MAC address as a login to authenticate peer on server. Peer’s MAC address is checked using MAC address filter
+ 
+1.  Specification Requirements
+
+
+   In this document, several words are used to signify the requirements
+   of the specification.  These words are often capitalized.
+
+   MUST
+      This word, or the adjective "required", means that the definition
+      is an absolute requirement of the specification.
+
+
+   MUST NOT
+      This phrase means that the definition is an absolute prohibition
+      of the specification.
+
+   SHOULD
+      This word, or the adjective "recommended", means that there may
+      exist valid reasons in particular circumstances to ignore this
+      item, but the full implications should be understood and carefully
+      weighed before choosing a different course.
+
+
+2.   Terminology
+
+
+This document frequently uses the following terms:
+
+ authenticator
+ The end of the link requiring the authentication. The
+ authenticator specifies the authentication protocol to be
+ used in the Configure-Request during Link Establishment
+ phase.
+
+peer
+      The other end of the point-to-point link; the end which is being
+      authenticated by the authenticator.
+
+
+3. MAC-Hash Authentication Protocol
+
+The MAC-Hash Authentication Protocol (MHAP) is used to
+ periodically verify the identity of the peer using a 3-way handshake.
+ This is done upon initial link establishment, and MAY be repeated
+ anytime after the link has been established. Link Establishment phase contains checking peer’s MAC address by the filter, that is generated on the server.
+
+1. After the Link Establishment phase is complete, the
+ authenticator sends a "challenge" message to the peer.
+
+ 2. The peer responds with a value calculated using a "one-way
+ hash" function.
+
+ 3. The authenticator checks the response against its own
+ calculation of the expected hash value. If the values match,
+ the authentication is acknowledged; otherwise the connection
+ SHOULD be terminated.
+
+ 4. At random intervals, the authenticator sends a new challenge to
+ the peer, and repeats steps 1 to 3.
+
+4.   Advantages
+
+MHAP provides protection against playback attack by the peer through
+ the use of an incrementally changing identifier and a variable
+ challenge value. 
+
+MHAP allow authentication for limited number of peers, so it is good decision for local networks and IoT.
+
+MHAP provides easier authentication than others protocols because of using MAC-address authentication
+
+5.    Disadvantages
+
+MHAP is inefficient for WANs because of limited number of peers.
+
+Hackers can access directly to peer.
+
+6. Packet format
+
+The fields are transmitted from left to right.
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ | Code | Identifier | Length |
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ | Data ...
+ +-+-+-+-+
+
+
+
+Code
+
+ The Code field is one octet and identifies the type of CHAP
+ packet. CHAP Codes are assigned as follows:
+
+ F1 SMAC
+ F2 Challenge
+ F3 Reply
+ F4 Success
+ F5 Failure
+
+Identifier
+
+ The Identifier field is one octet and aids in matching requests
+ and replies.
+
+Length
+
+ The Length field is two octets and indicates the length of the
+ CHAP packet including the Code, Identifier, Length and Data
+ fields. Octets outside the range of the Length field should be
+ treated as Data Link Layer padding and should be ignored on
+ reception.
+
+
+
+
+ Data
+
+ The Data field is zero or more octets. The format of the Data
+ field is determined by the Code field.
+
+
+
+
+
+7. MHAP Messages
+
+The SMAC package begins the auntiation process. It directly contains the MAC address
+of the device from which the customer is going to enter.
+
+The Challenge package is sent from the server to the customer after the server has checked
+the MAC address by filter and the MAC address is available for an a certification.
+This package contains a hash function.
+
+The Reply package is the answer to the Challeng package. 
+With its "secret," the device receives a hash amount from the hash function and sends it in the Reply package.
+
+The Success package is sent from server to customer in case the hash sum on the server is matched with the Reply package received.
+
+Failure package is sent from server to customer on several occasions (see scripts).
+For example, if the MAC address of the device does not fit by filter or hash amounts on the server after the Reply package does not match.
+
+
+---------                       ----------
+| Peer  |                       | Server |                           
+---------                       ----------
+    |            F1 SMAC             | 
+    |------------------------------->|                                
+    |                                |
+    |          F2 Challenge          | 
+    |<-------------------------------|                                
+    |                                |
+    |         F3 Reply               |
+    |------------------------------->|                                
+    |                                |
+    |        F4 Success              |
+    |<-------------------------------|
+Рис.1 Сценарий успешной аунтефикации
+  
+
+---------                       ----------
+| Peer  |                       | Server |                           
+---------                       ----------
+    |            F1 SMAC             | 
+    |------------------------------->|                                
+    |                                |
+    |          F2 Challenge          | 
+    |<-------------------------------|                                
+    |                                |
+    |         F3 Reply               |
+    |------------------------------->|                                
+    |                                |
+    |        F5 Failure              |
+    |<-------------------------------|
+    |                                |
+Рис.2 Сценарий неудачной аунтефикации. Хэш-суммы не совпали
+
+
+
+---------                       ----------
+| Peer  |                       | Server |                           
+---------                       ----------
+    |            F1 SMAC             | 
+    |------------------------------->|                                
+    |                                |
+    |          F5 Failure            | 
+    |<-------------------------------|                                
+    |                                |
+    |                                |
+    |                                |                                
+    |                                |
+    |                                |
+    |                                |
+Рис. 3 Сценарий неудачной аунтефикации. МАС адрес устройства не проходит по фильтру МАС адресов в сервере.
+
